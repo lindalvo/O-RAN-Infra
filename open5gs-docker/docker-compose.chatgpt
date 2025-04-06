@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:5.0.31
+    container_name: mongodb
+    volumes:
+      - ./mongodb:/data/db
+    networks:
+      - open5gs-net
+
+  open5gs:
+    image: gradiant/open5gs:2.7.5
+    container_name: open5gs
+    depends_on:
+      - mongodb
+    #volumes:
+    #  - ./open5gs/config:/open5gs/install/etc/open5gs
+    environment:
+      - MONGO_DB_URI=mongodb://mongodb/open5gs
+    ports:
+      - "3000:3000"    # Porta do WebUI (opcional)
+    #network_mode: "host"  # Para facilitar comunicação com UE/srsRAN
+    cap_add:
+      - NET_ADMIN
+    privileged: true
+    networks:
+      - open5gs-net
+
+networks:
+  open5gs-net:
+    driver: bridge

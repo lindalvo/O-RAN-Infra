@@ -1,0 +1,84 @@
+version: "3"
+services:
+  mongo:
+    image: mongo:4.4.13
+    environment:
+      MONGO_INITDB_DATABASE: open5gs
+    container_name: mongo
+    volumes:
+      - ./mongodb:/data/db
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    expose:
+      - "27017/udp"
+      - "27017/tcp"
+    command: mongod --bind_ip 0.0.0.0
+    restart: on-failure
+    networks:
+      default:
+        ipv4_address: 172.22.0.2
+  smf:
+    image: gradiant/open5gs:2.4.13
+    entrypoint: /entrypoint_open5gs.sh
+    command: open5gs-smfd
+    container_name: smf
+    volumes:
+      - entrypoint_file:/entrypoint_open5gs.sh
+      - ./config/open5gs/smf.conf:/opt/open5gs/etc/freeDiameter/smf.conf
+      - ./config/open5gs/smf.yaml:/opt/open5gs/smf.yaml
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    expose:
+      - "3868/udp"
+      - "3868/tcp"
+      - "3868/sctp"
+      - "5868/udp"
+      - "5868/tcp"
+      - "5868/sctp"
+      - "8805/udp"
+      - "2123/udp"
+      - "7777/tcp"
+    restart: on-failure
+    networks:
+      default:
+        ipv4_address: 172.22.0.7        
+  upf:
+    image: gradiant/open5gs:2.4.13
+    entrypoint: /entrypoint_open5gs.sh
+    command: open5gs-upfd
+    depends_on:
+      - smf
+    container_name: upf
+    volumes:
+      - entrypoint_file:/entrypoint_open5gs.sh
+      - ./config/open5gs/upf.yaml:/opt/open5gs/etc/open5gs/upf.yaml
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    expose:
+      - "2152/udp"
+      - "8805/udp"
+    ports:
+      - 2152:2152
+    cap_add:
+      - all
+    privileged: true
+    sysctls:
+      - net.ipv4.ip_forward=1
+    restart: on-failure
+    networks:
+      default:
+        ipv4_address: 172.22.0.8
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24
+volumes:
+  entrypoint_file:
+     driver: local
+     driver_opts:
+        type: none
+        o: bind
+        device: ./config/open5gs/entrypoint_open5gs.sh
+#  dbdata: {}
