@@ -1,10 +1,10 @@
 version: "3"
 services:
   mongo:
-    image: mongo:4.4.13
+    image: bitnami/mongodb:4.4.1-debian-10-r39
+    container_name: mongo
     environment:
       MONGO_INITDB_DATABASE: open5gs
-    container_name: mongo
     volumes:
       - ./mongodb:/data/db
       - /etc/timezone:/etc/timezone:ro
@@ -17,195 +17,168 @@ services:
     networks:
       default:
         ipv4_address: 172.22.0.2
+
   webui:
-    image: gradiant/open5gs-webui:2.4.11
+    image: docker.io/gradiant/open5gs-webui:2.7.0
     container_name: webui
     depends_on:
       - mongo
     environment:
       - DB_URI=mongodb://mongo/open5gs
       - NODE_ENV=dev
-    volumes:
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
     expose:
-      - "3000/tcp"
+      - "9999/tcp"
     ports:
-      - "3000:3000/tcp"
-    restart: on-failure
-    networks:
-      default:
-        ipv4_address: 172.22.0.26
-  hss:
-    image: gradiant/open5gs:2.4.13
-    entrypoint: /entrypoint_open5gs.sh
-    container_name: hss
-    command: open5gs-hssd
-    volumes:
-      - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
-      - ./config/open5gs/hss.conf:/opt/open5gs/etc/freeDiameter/hss.conf
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    depends_on:
-      - mongo
-    environment:
-      - DB_URI=mongodb://mongo/open5gs
-    expose:
-      - "3868/udp"
-      - "3868/tcp"
-      - "3868/sctp"
-      - "5868/udp"
-      - "5868/tcp"
-      - "5868/sctp"
+      - "3000:9999"
     restart: on-failure
     networks:
       default:
         ipv4_address: 172.22.0.3
-  sgwc:
-    image: gradiant/open5gs:2.4.13
+
+  nrf:
+    image: docker.io/gradiant/open5gs:2.7.0
     entrypoint: /entrypoint_open5gs.sh
-    command: open5gs-sgwcd
-    depends_on:
-      - smf
-      - upf
-    container_name: sgwc
+    command: open5gs-nrfd
+    container_name: nrf
     volumes:
       - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
+      #- ./config/open5gs/nrf.yaml:/opt/open5gs/etc/open5gs/nrf.yaml
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    expose:
-      - "2123/udp"
-      - "8805/udp"
-    restart: on-failure
+    networks:
+      default:
+        ipv4_address: 172.22.0.4
+
+  amf:
+    image: docker.io/gradiant/open5gs:2.7.0
+    entrypoint: /entrypoint_open5gs.sh
+    command: open5gs-amfd
+    container_name: amf
+    volumes:
+      - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
+      #- ./config/open5gs/amf.yaml:/opt/open5gs/etc/open5gs/amf.yaml
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "38412:38412/tcp"
+      - "38412:38412/udp"
     networks:
       default:
         ipv4_address: 172.22.0.5
-  sgwu:
-    image: gradiant/open5gs:2.4.13
+
+  ausf:
+    image: docker.io/gradiant/open5gs:2.7.0
     entrypoint: /entrypoint_open5gs.sh
-    command: open5gs-sgwud
-    depends_on:
-      - smf
-      - upf
-    container_name: sgwu
+    command: open5gs-ausfd
+    container_name: ausf
     volumes:
       - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
+      #- ./config/open5gs/ausf.yaml:/opt/open5gs/etc/open5gs/ausf.yaml
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    expose:
-      - "8805/udp"
-      - "2152/udp"
-    restart: on-failure
     networks:
       default:
         ipv4_address: 172.22.0.6
+
+  udm:
+    image: docker.io/gradiant/open5gs:2.7.0
+    entrypoint: /entrypoint_open5gs.sh
+    command: open5gs-udmd
+    container_name: udm
+    volumes:
+      - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
+      #- ./config/open5gs/udm.yaml:/opt/open5gs/etc/open5gs/udm.yaml
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      default:
+        ipv4_address: 172.22.0.7
+
+  pcf:
+    image: docker.io/gradiant/open5gs:2.7.0
+    entrypoint: /entrypoint_open5gs.sh
+    command: open5gs-pcfd
+    container_name: pcf
+    volumes:
+      - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
+      #- ./config/open5gs/pcf.yaml:/opt/open5gs/etc/open5gs/pcf.yaml
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      default:
+        ipv4_address: 172.22.0.8
+
   smf:
-    image: gradiant/open5gs:2.4.13
+    image: docker.io/gradiant/open5gs:2.7.0
     entrypoint: /entrypoint_open5gs.sh
     command: open5gs-smfd
     container_name: smf
     volumes:
       - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
-      - ./config/open5gs/smf.conf:/opt/open5gs/etc/freeDiameter/smf.conf
-      - ./config/open5gs/smf.yaml:/opt/open5gs/smf.yaml
+      #- ./config/open5gs/smf.yaml:/opt/open5gs/etc/open5gs/smf.yaml
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    expose:
-      - "3868/udp"
-      - "3868/tcp"
-      - "3868/sctp"
-      - "5868/udp"
-      - "5868/tcp"
-      - "5868/sctp"
-      - "8805/udp"
-      - "2123/udp"
-      - "7777/tcp"
-    restart: on-failure
+    ports:
+      - "7777:7777"
     networks:
       default:
-        ipv4_address: 172.22.0.7        
+        ipv4_address: 172.22.0.9
+
   upf:
-    image: gradiant/open5gs:2.4.13
+    image: docker.io/gradiant/open5gs:2.7.0
     entrypoint: /entrypoint_open5gs.sh
     command: open5gs-upfd
-    depends_on:
-      - smf
     container_name: upf
     volumes:
       - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
-      - ./config/open5gs/upf.yaml:/opt/open5gs/etc/open5gs/upf.yaml
+      #- ./config/open5gs/upf.yaml:/opt/open5gs/etc/open5gs/upf.yaml
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-    expose:
-      - "2152/udp"
-      - "8805/udp"
-    ports:
-      - 2152:2152
     cap_add:
       - all
     privileged: true
     sysctls:
       - net.ipv4.ip_forward=1
-    restart: on-failure
-    networks:
-      default:
-        ipv4_address: 172.22.0.8
-  mme:
-    image: gradiant/open5gs:2.4.13
-    entrypoint: /entrypoint_open5gs.sh
-    command: open5gs-mmed
-    depends_on:
-      - hss
-      - sgwc
-      - sgwu
-      - smf
-      - upf
-    container_name: mme
-    volumes:
-      - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
-      - ./config/open5gs/mme.yaml:/opt/open5gs/etc/open5gs/mme.yaml
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    expose:
-      - "3868/udp"
-      - "3868/tcp"
-      - "3868/sctp"
-      - "5868/udp"
-      - "5868/tcp"
-      - "5868/sctp"
-      - "36412/sctp"
-      - "2123/udp"
     ports:
-      - 36412:36412
-    restart: on-failure
+      - "2152:2152/udp"
     networks:
       default:
-        ipv4_address: 172.22.0.9
-  pcrf:
-    image: gradiant/open5gs:2.4.13
-    entrypoint: /entrypoint_open5gs.sh
-    command: open5gs-pcrfd
-    container_name: pcrf
-    environment:
-      - DB_URI=mongodb://mongo/open5gs
-    depends_on:
-      - mongo
-    volumes:
-      - ./config/open5gs/entrypoint_open5gs.sh:/entrypoint_open5gs.sh
-      - ./config/open5gs/pcrf.conf:/opt/open5gs/etc/freeDiameter/pcrf.conf
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    expose:
-      - "3868/udp"
-      - "3868/tcp"
-      - "3868/sctp"
-      - "5868/udp"
-      - "5868/tcp"
-      - "5868/sctp"
-    restart: on-failure
-    networks:
-      default:
-        ipv4_address: 172.22.0.4
+        ipv4_address: 172.22.0.10
+
+#  gnb:
+#    image: gradiant/srsran-5g:24_10_1
+#    container_name: gnb
+#    networks:
+#      default:
+#        ipv4_address: 172.22.0.20
+#    command: >
+#      gnb
+#      --rf.device=zmq
+#      --zmq.bind_addr=ipc:///tmp/gnb
+#      --log.all_level=debug
+#    volumes:
+#      - /tmp:/tmp
+#    depends_on:
+#      - amf
+
+#  ue:
+#    image: gradiant/srsran-5g:24_10_1
+#    container_name: ue
+#    networks:
+#      default:
+#        ipv4_address: 172.22.0.21
+#    command: >
+#      ue
+#      --rf.device=zmq
+#      --zmq.connect_addr=ipc:///tmp/gnb
+#      --usim.imsi=001010000000001
+#      --usim.k=465B5CE8B199B49FAA5F0A2EE238A6BC
+#      --usim.opc=E8ED289DEBA952E4283B54E88E6183CA
+#      --log.all_level=info
+#    volumes:
+#      - /tmp:/tmp
+#    depends_on:
+#      - gnb
 
 networks:
   default:
