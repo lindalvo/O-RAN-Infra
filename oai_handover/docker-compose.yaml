@@ -88,6 +88,22 @@ services:
             interval: 10s
             timeout: 5s
             retries: 5
+    oai-flexric:
+        image: oaisoftwarealliance/oai-flexric:develop
+        container_name: oai-flexric
+        environment:
+            - TZ=America/Belem
+        networks:
+            public_net:
+                ipv4_address: 192.168.71.180
+        volumes:
+            - ./conf_files/flexric.conf:/usr/local/etc/flexric/flexric.conf
+            - sharedXappLibs:/usr/local/lib/flexric/
+            - /etc/localtime:/etc/localtime:ro
+        healthcheck:
+            test: /bin/bash -c "pgrep nearRT-RIC"
+            interval: 10s
+            timeout: 5s
     oai-cu:
         image: oaisoftwarealliance/oai-gnb:develop
         container_name: rfsim5g-oai-cu
@@ -101,6 +117,9 @@ services:
                                     --gNBs.[0].remote_s_address 0.0.0.0
                                     --telnetsrv --telnetsrv.listenaddr 192.168.71.150
                                     --telnetsrv.shrmod ci
+                                    --E2AP
+                                    --E2AP_IP_ADDRESS 192.168.71.180
+                                    --E2AP_PORT 36421
             ASAN_OPTIONS: detect_leaks=0:detect_odr_violation=0
         depends_on:
             - oai-ext-dn
@@ -136,7 +155,7 @@ services:
                 ipv4_address: 192.168.71.171
         volumes:
             - /etc/localtime:/etc/localtime:ro
-            - ./conf_files/gnb-du1.sa.band78.106prb.rfsim.conf:/opt/oai-gnb/etc/gnb.conf
+            - ./conf_files/gnb-du.sa.band78.106prb.rfsim.conf:/opt/oai-gnb/etc/gnb.conf
         healthcheck:
             test: /bin/bash -c "pgrep nr-softmodem"
             interval: 10s
@@ -209,8 +228,7 @@ services:
     oai-nr-ue2:
         image: oaisoftwarealliance/oai-nr-ue:develop
         container_name: rfsim5g-oai-nr-ue2
-        cap_drop:
-            - ALL
+        privileged: true
         cap_add:
             - NET_ADMIN  # for interface bringup
             - NET_RAW    # for ping
@@ -221,7 +239,7 @@ services:
                                     -r 106 --numerology 1 -C 3619200000
                                     --uicc0.imsi 208990100001101
                                     --rfsimulator.options chanmod
-                                    --rfsimulator.serveraddr server
+                                    --rfsimulator.serveraddr 192.168.71.171
                                     --rfsimulator.hanging-workaround 1
                                     --telnetsrv --telnetsrv.shrmod ciUE --telnetsrv.listenaddr 192.168.71.182 --telnetsrv.listenport 8091
                                     --channelmod.modellist_rfsimu_1.[0].model_name rfsimu_channel_ue1
@@ -241,6 +259,8 @@ services:
             timeout: 5s
             retries: 5
 
+volumes:
+    sharedXappLibs:
 
 networks:
     public_net:
